@@ -2,6 +2,7 @@
 #![no_main]
 
 use core::panic::PanicInfo;
+mod print_util;
 
 // Called on panic
 #[panic_handler]
@@ -9,18 +10,13 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 } 
 
-static HELLO: &[u8] = b"Hello World!";
-
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let vga_buffer = 0xb8000 as *mut u8;
 
-    for (i, &byte) in HELLO.iter().enumerate() {
-        unsafe {
-            *vga_buffer.offset(i as isize * 2) = byte;
-            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
-        }
-    }
+    print_util::kprintln("==================== Welcome to ferr_os =================");
+    print_util::kprintln("> BETA VERSION 0.0.1");
+    print_util::kprintln("> Architecture: x86_64");
+    print_util::kprintln("> Initializing...");
 
     loop {}
 }
