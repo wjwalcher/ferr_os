@@ -1,5 +1,7 @@
 /** Utility for writing text to the VGA buffer */
 
+extern crate cpuio;
+
 use volatile::Volatile;
 use core::fmt;
 use spin::Mutex;
@@ -61,7 +63,6 @@ pub struct ScreenWriter {
     buffer: &'static mut Buffer
 }
 
-// TODO: Get formatting to work for kprintln
 impl fmt::Write for ScreenWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.print_string(s);
@@ -107,13 +108,12 @@ impl ScreenWriter {
             }
             
         }
+
     }
 
     fn new_line(&mut self) { 
-        unsafe {
-            self.column_position = 0;
-            self.row_position += 1;
-        } 
+        self.column_position = 0;
+        self.row_position += 1;
     }
 
     // Can I get an O(r * h) react 
@@ -128,6 +128,7 @@ impl ScreenWriter {
     }
 
     // Print string to the VGA buffer
+    #[allow(exceeding_bitshifts)]
     pub fn print_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
@@ -137,6 +138,24 @@ impl ScreenWriter {
                 _ => self.write_byte(0xfe)
             }
         }
+
+        // TODO: Get cursor to update upon writing a line
+        // let column_offset = self.column_position * 80;
+        // let row_offset = self.row_position;
+        // let cursor_position : u16 = (column_offset + row_offset) as u16;
+        // unsafe {
+        //     cpuio::outb(15, 0x3D4);
+        //     cpuio::outb((cursor_position & 0xFF) as u8, 0x3D5);
+        //     cpuio::outb(14, 0x3D4);
+        //     cpuio::outb(((cursor_position >> 8) & 0xFF) as u8, 0x3D5);
+        // }
+
+        // For now I'll just turn off the cursor blink 
+        unsafe {
+            cpuio::outb(14, 0x3D4);
+            cpuio::outb(0xFF, 0x3D5);
+        }
+
     }
 }
 

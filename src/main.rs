@@ -3,6 +3,7 @@
 
 use core::panic::PanicInfo;
 mod print_util;
+extern crate cpuio;
 
 // Called on panic
 #[panic_handler]
