@@ -2,6 +2,8 @@
 
 use volatile::Volatile;
 use core::fmt;
+use spin::Mutex;
+use lazy_static::lazy_static;
 
 // CONSTANTS
 const BUFFER_HEIGHT: usize = 25;
@@ -53,6 +55,8 @@ struct Buffer {
 }
 
 pub struct ScreenWriter {
+    column_position: usize, 
+    row_position: usize, 
     color_code: ColorCode, 
     buffer: &'static mut Buffer
 }
@@ -65,41 +69,50 @@ impl fmt::Write for ScreenWriter {
     }
 }
 
-static mut COL : usize = 0;
-static mut ROW : usize = 0;
+lazy_static! {
+    pub static ref WRITER: Mutex<ScreenWriter> = Mutex::new(ScreenWriter {
+        column_position: 0, 
+        row_position: 0, 
+        color_code: ColorCode::new(Color::Blue, Color::Black), 
+        buffer: unsafe {&mut *(0xb8000 as *mut Buffer)}
+    });
+}
 
 impl ScreenWriter {
     pub fn write_byte(&mut self, byte: u8) {
-        unsafe {
-            match byte {
-                b'\n' => self.new_line(),
-                byte => {
-                    if COL >= BUFFER_WIDTH {
-                        self.new_line();
-                    }
+       
+        match byte {
+            b'\n' => self.new_line(),
+            byte => {
+                let col = self.column_position;
+                let row = self.row_position;
 
-                    if ROW >= BUFFER_HEIGHT {
-                        self.shift_lines_up();
-                        ROW = BUFFER_HEIGHT - 1;
-                    }
-
-                    let color_code = self.color_code;
-
-                    self.buffer.chars[ROW][COL].write(ScreenChar {
-                        ascii_char: byte, 
-                        color_code
-                    });
-
-                    COL += 1;
+                if col >= BUFFER_WIDTH {
+                    self.new_line();
                 }
+
+                if row >= BUFFER_HEIGHT {
+                    self.shift_lines_up();
+                    self.row_position = BUFFER_HEIGHT - 1;
+                }
+
+                let color_code = self.color_code;
+
+                self.buffer.chars[row][col].write(ScreenChar {
+                    ascii_char: byte, 
+                    color_code
+                });
+
+                self.column_position += 1;
             }
+            
         }
     }
 
     fn new_line(&mut self) { 
         unsafe {
-            COL = 0;
-            ROW += 1;
+            self.column_position = 0;
+            self.row_position += 1;
         } 
     }
 
@@ -128,13 +141,6 @@ impl ScreenWriter {
 }
 
 pub fn kprintln(string: &str) {
-    unsafe {
-        let mut writer = ScreenWriter {
-            color_code: ColorCode::new(Color::Blue, Color::Black), 
-            buffer: &mut *(0xb8000 as *mut Buffer) 
-        }; 
-
-        writer.print_string(string);
-        writer.new_line();
-    }
+    WRITER.lock().print_string(string);
+    WRITER.lock().new_line();
 }

@@ -12,11 +12,12 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    use core::fmt::Write;
 
-    print_util::kprintln("==================== Welcome to ferr_os =================");
-    print_util::kprintln("> BETA VERSION 0.0.1");
-    print_util::kprintln("> Architecture: x86_64");
-    print_util::kprintln("> Initializing...");
+    write!(print_util::WRITER.lock(), "==================== Welcome to ferr_os =================\n");
+    write!(print_util::WRITER.lock(), "> BETA VERSION {}.{}.{}\n", 0, 0, 1);
+    write!(print_util::WRITER.lock(), "> Architecture: {}\n", "x86_64");
+    write!(print_util::WRITER.lock(), "> Initializing...\n");
     
     loop {}
 }
