@@ -17,6 +17,6 @@ pub extern "C" fn _start() -> ! {
     print_util::kprintln("> BETA VERSION 0.0.1");
     print_util::kprintln("> Architecture: x86_64");
     print_util::kprintln("> Initializing...");
-
+    
     loop {}
 }
